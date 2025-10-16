@@ -145,7 +145,7 @@ def test_compare_parquet_votable(tmp_path):
 def test_write_from_votable_existing_metadata(tmp_path):
     """Read a votable into a Table and write it out as 'parquet.votable' preserving metadata"""
     output_filename = tmp_path / "test_votable.parq"
-    input_data = get_pkg_data_filename("data/gaia_source_dr3_select_1_result.vot")
+    input_data = get_pkg_data_filename("data/table_allwise_p3as_psd-irsa-2.vot")
 
     input_t = Table.read(input_data)
 
@@ -157,8 +157,9 @@ def test_write_from_votable_existing_metadata(tmp_path):
         loaded_table = Table.read(output_filename, format="parquet.votable")
 
         assert np.all(input_t == loaded_table)
-        for attr in ["meta", "unit", "dtype", "description"]:
-            assert getattr(input_t["ra"], attr) == getattr(loaded_table["ra"], attr)
+        for col in input_t.colnames:
+            for attr in ["name", "meta", "unit", "dtype", "description"]:
+                assert getattr(input_t[col], attr) == getattr(loaded_table[col], attr)
 
 
 # Not sure this use case should be supported at all
@@ -166,7 +167,7 @@ def test_write_from_votable_existing_metadata(tmp_path):
 def test_write_from_votable_overriding_metadata(tmp_path):
     """Read a votable into a Table and write it out as 'parquet.votable' preserving metadata"""
     output_filename = tmp_path / "test_votable.parq"
-    input_data = get_pkg_data_filename("data/gaia_source_dr3_select_1_result.vot")
+    input_data = get_pkg_data_filename("data/table_allwise_p3as_psd-irsa-2.vot")
 
     input_t = Table.read(input_data)
 
@@ -198,3 +199,18 @@ def test_read_write_existing(tmp_path):
 
     with pytest.raises(OSError, match=_NOT_OVERWRITING_MSG_MATCH):
         write_parquet_votable(input_table, filename, metadata=column_metadata)
+
+def test_votable_to_parquet_with_test_parquet(tmp_path):
+    """Test reading a test VOTable file and then writing it to a parquet file with
+    metadata, and that the generated parquet matches the test parquet file."""
+    input_vot_file = get_pkg_data_filename("data/table_allwise_p3as_psd-irsa-2.vot")
+    input_vot_table = Table.read(input_vot_file)
+
+    generated_parquet_file = tmp_path / "generated.parquet"
+    input_vot_table.write(
+        generated_parquet_file,
+        format="parquet.votable",
+        overwrite=True,
+    )
+
+    # TODO: test generated_parquet_file against data/table_allwise_p3as_psd-irsa-2.parquet 
